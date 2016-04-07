@@ -45,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
     String[] positions = new String[15];
     String[] names = new String[15];
     String[] vids = new String[15];
+    ListView lvMain;
+    ProgressBar pb;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -56,23 +58,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listAdapter = new ListAdapter(this, atcs);
-        ListView lvMain = (ListView) findViewById(R.id.lvMain);
-        ProgressBar pb = (ProgressBar) findViewById(R.id.pb);
+        lvMain = (ListView) findViewById(R.id.lvMain);
+        pb = (ProgressBar) findViewById(R.id.pb);
         new ParseTask().execute();
-        try {
-            TimeUnit.SECONDS.sleep(4);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        lvMain.setVisibility(View.VISIBLE);
-        pb.setVisibility(View.GONE);
         startService(new Intent(this, BasicService.class));
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
-        lvMain.setAdapter(listAdapter);
-    }
-
-    public void onClick(View v) {
-
     }
 
     @Override
@@ -173,7 +163,9 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("VID", vids[i]);
                     atcs.add(new atc(names[i], positions[i], vids[i]));
                 }
-                doneParsing = true;
+                lvMain.setAdapter(listAdapter);
+                lvMain.setVisibility(View.VISIBLE);
+                pb.setVisibility(View.GONE);
             } catch (Exception e) {
                 doneParsing = true;
             }

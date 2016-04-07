@@ -16,6 +16,7 @@
             </intent-filter>
         </activity>
         <service android:name=".BasicService"
+            android:process=":Service"
         android:enabled="true">
         </service>
         <!-- ATTENTION: This was auto-generated to add Google Play services to your project for

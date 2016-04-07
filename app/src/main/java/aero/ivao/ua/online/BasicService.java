@@ -44,7 +44,7 @@ public class BasicService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOG_TAG, "onStartCommand");
         beginObservation();
-        return super.onStartCommand(intent, flags, startId);
+        return Service.START_STICKY;
 
     }
 
