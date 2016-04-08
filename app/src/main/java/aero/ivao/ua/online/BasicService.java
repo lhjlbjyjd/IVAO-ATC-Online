@@ -10,8 +10,10 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -40,6 +42,8 @@ public class BasicService extends Service {
     private Timer mTimer;
     private MyTimerTask mMyTimerTask;
     final String FILENAME = "servData";
+    NotificationManager nm;
+    int SDK_VERSION = android.os.Build.VERSION.SDK_INT;
 
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOG_TAG, "onStartCommand");
@@ -151,38 +155,42 @@ public class BasicService extends Service {
                     }
                 }
                 if(updated){
-                    long[] vibrationPattern = {0, 300, 200, 300};
-                    Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                    NotificationCompat.Builder mBuilder =
-                            new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
-                                    .setSmallIcon(R.drawable.notiflogo)
-                                    .setContentTitle("Новые диспетчеры онлайн!")
-                                    .setContentText("Самое время полетать!")
-                                    .setAutoCancel(true)
-                                    .setSound(ringUri)
-                                    .setVibrate(vibrationPattern);
-// Creates an explicit intent for an Activity in your app
-                    Intent resultIntent = new Intent(aero.ivao.ua.online.BasicService.this, MainActivity.class);
-
-// The stack builder object will contain an artificial back stack for the
-// started Activity.
-// This ensures that navigating backward from the Activity leads out of
-// your application to the Home screen.
-                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(aero.ivao.ua.online.BasicService.this);
-// Adds the back stack for the Intent (but not the Intent itself)
-                    stackBuilder.addParentStack(MainActivity.class);
-// Adds the Intent that starts the Activity to the top of the stack
-                    stackBuilder.addNextIntent(resultIntent);
-                    PendingIntent resultPendingIntent =
-                            stackBuilder.getPendingIntent(
-                                    0,
-                                    PendingIntent.FLAG_UPDATE_CURRENT
-                            );
-                    mBuilder.setContentIntent(resultPendingIntent);
-                    NotificationManager mNotificationManager =
-                            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-// mId allows you to update the notification later on.
-                    mNotificationManager.notify(221, mBuilder.build());
+                    if(SDK_VERSION >= 16) {
+                        long[] vibrationPattern = {0, 300, 200, 300};
+                        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                        NotificationCompat.Builder mBuilder =
+                                new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
+                                        .setSmallIcon(R.drawable.notiflogo)
+                                        .setContentTitle("Новые диспетчеры онлайн!")
+                                        .setContentText("Самое время полетать!")
+                                        .setAutoCancel(true)
+                                        .setSound(ringUri)
+                                        .setVibrate(vibrationPattern);
+                        Intent resultIntent = new Intent(aero.ivao.ua.online.BasicService.this, MainActivity.class);
+                        TaskStackBuilder stackBuilder = TaskStackBuilder.create(aero.ivao.ua.online.BasicService.this);
+                        stackBuilder.addParentStack(MainActivity.class);
+                        stackBuilder.addNextIntent(resultIntent);
+                        PendingIntent resultPendingIntent =
+                                stackBuilder.getPendingIntent(
+                                        0,
+                                        PendingIntent.FLAG_UPDATE_CURRENT
+                                );
+                        mBuilder.setContentIntent(resultPendingIntent);
+                        NotificationManager mNotificationManager =
+                                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                        mNotificationManager.notify(221, mBuilder.build());
+                    }else{
+                        long[] vibrationPattern = {0, 300, 200, 300};
+                        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
+                                .setSmallIcon(R.drawable.notiflogo)
+                                .setContentTitle("Новые диспетчеры онлайн!")
+                                .setContentText("Самое время полетать!")
+                                .setAutoCancel(true)
+                                .setSound(ringUri)
+                                .setVibrate(vibrationPattern);
+                        NotificationManagerCompat.from(aero.ivao.ua.online.BasicService.this).notify(221, mBuilder.build());
+                    }
                     writeFile(resultJson);
                 }
             } catch (JSONException e) {

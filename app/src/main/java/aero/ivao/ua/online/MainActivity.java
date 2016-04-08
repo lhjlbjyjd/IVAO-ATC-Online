@@ -1,14 +1,14 @@
 package aero.ivao.ua.online;
 
+import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,20 +21,14 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -63,6 +57,20 @@ public class MainActivity extends AppCompatActivity {
         new ParseTask().execute();
         startService(new Intent(this, BasicService.class));
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
+
+    public void onClick(View v){
+        long[] vibrationPattern = {0, 300, 200, 300};
+        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.notiflogo)
+                        .setContentTitle("Новые диспетчеры онлайн!")
+                        .setContentText("Самое время полетать!")
+                        .setAutoCancel(true)
+                        .setSound(ringUri)
+                        .setVibrate(vibrationPattern);
+        NotificationManagerCompat nm = NotificationManagerCompat.from(this);
+        nm.notify(221, mBuilder.build());
     }
 
     @Override
