@@ -189,7 +189,8 @@ public class BasicService extends Service {
                                 .setAutoCancel(true)
                                 .setSound(ringUri)
                                 .setVibrate(vibrationPattern);
-                        NotificationManagerCompat.from(aero.ivao.ua.online.BasicService.this).notify(221, mBuilder.build());
+                        NotificationManagerCompat nm = NotificationManagerCompat.from(aero.ivao.ua.online.BasicService.this);
+                        nm.notify(221, mBuilder.build());
                     }
                     writeFile(resultJson);
                 }

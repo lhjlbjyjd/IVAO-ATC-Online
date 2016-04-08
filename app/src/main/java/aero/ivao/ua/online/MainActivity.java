@@ -59,20 +59,6 @@ public class MainActivity extends AppCompatActivity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    public void onClick(View v){
-        long[] vibrationPattern = {0, 300, 200, 300};
-        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.notiflogo)
-                        .setContentTitle("Новые диспетчеры онлайн!")
-                        .setContentText("Самое время полетать!")
-                        .setAutoCancel(true)
-                        .setSound(ringUri)
-                        .setVibrate(vibrationPattern);
-        NotificationManagerCompat nm = NotificationManagerCompat.from(this);
-        nm.notify(221, mBuilder.build());
-    }
-
     @Override
     public void onStart() {
         super.onStart();
