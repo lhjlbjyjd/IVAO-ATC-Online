@@ -13,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
@@ -158,9 +159,8 @@ public class BasicService extends Service {
                     if(SDK_VERSION >= 16) {
                         long[] vibrationPattern = {0, 300, 200, 300};
                         Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                        NotificationCompat.Builder mBuilder =
-                                new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
-                                        .setSmallIcon(R.drawable.notiflogo)
+                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
+                                        .setSmallIcon(R.drawable.logonotif_white)
                                         .setContentTitle("Новые диспетчеры онлайн!")
                                         .setContentText("Самое время полетать!")
                                         .setAutoCancel(true)
@@ -183,7 +183,7 @@ public class BasicService extends Service {
                         long[] vibrationPattern = {0, 300, 200, 300};
                         Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
-                                .setSmallIcon(R.drawable.notiflogo)
+                                .setSmallIcon(R.drawable.logonotif_black)
                                 .setContentTitle("Новые диспетчеры онлайн!")
                                 .setContentText("Самое время полетать!")
                                 .setAutoCancel(true)
