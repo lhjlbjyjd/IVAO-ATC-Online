@@ -42,9 +42,9 @@ public class BasicService extends Service {
     int length1;
     private Timer mTimer;
     private MyTimerTask mMyTimerTask;
-    final String FILENAME = "servData";
     NotificationManager nm;
     int SDK_VERSION = android.os.Build.VERSION.SDK_INT;
+    final String FILENAME = "servData";
 
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(LOG_TAG, "onStartCommand");
@@ -122,78 +122,80 @@ public class BasicService extends Service {
                 //2 JSON
                 Log.d("Start", "Start");
                 String oldJson = readFile();
-                JSONObject jsonObject1 = new JSONObject(oldJson);
-                Log.d("Start", "Obj");
-                JSONArray data1 = jsonObject1.getJSONArray("data");
-                Log.d("Start", "Get");
-                length1 = data1.length();
-                Log.d("L2", String.valueOf(length1));
-                Log.d("JSON", oldJson);
-                boolean updated = false;
-                String[] prevPositions = new String[length1];
-                for (int i = 0; i < length1; i++) {
-                    //Переносим позиции из JSON в массив
-                    JSONArray tmp1 = data1.getJSONArray(i);
-                    if(tmp1.length() != 0){
-                        prevPositions[i] = tmp1.getString(0);
-                        Log.d("REP", "REP");
-                    }
-                }
-                Log.d("LEN", String.valueOf(length1));
-                for (int i = 0; i < length; i++){
-                    Log.d("I", String.valueOf(i));
-                    Log.d("1", positions[i]);
-                    updated = true;
-                    for (int j = 0; j < length1; j++){
-                        Log.d("J", String.valueOf(j));
-                        Log.d("2", prevPositions[j]);
-                        if(positions[i].equals(prevPositions[j])){
-                            updated = false;
+                if(oldJson != null) {
+                    JSONObject jsonObject1 = new JSONObject(oldJson);
+                    Log.d("Start", "Obj");
+                    JSONArray data1 = jsonObject1.getJSONArray("data");
+                    Log.d("Start", "Get");
+                    length1 = data1.length();
+                    Log.d("L2", String.valueOf(length1));
+                    Log.d("JSON", oldJson);
+                    boolean updated = false;
+                    String[] prevPositions = new String[length1];
+                    for (int i = 0; i < length1; i++) {
+                        //Переносим позиции из JSON в массив
+                        JSONArray tmp1 = data1.getJSONArray(i);
+                        if (tmp1.length() != 0) {
+                            prevPositions[i] = tmp1.getString(0);
+                            Log.d("REP", "REP");
                         }
                     }
-                    if(updated){
-                        break;
+                    Log.d("LEN", String.valueOf(length1));
+                    for (int i = 0; i < length; i++) {
+                        Log.d("I", String.valueOf(i));
+                        Log.d("1", positions[i]);
+                        updated = true;
+                        for (int j = 0; j < length1; j++) {
+                            Log.d("J", String.valueOf(j));
+                            Log.d("2", prevPositions[j]);
+                            if (positions[i].equals(prevPositions[j])) {
+                                updated = false;
+                            }
+                        }
+                        if (updated) {
+                            break;
+                        }
+                    }
+                    if (updated) {
+                        if (SDK_VERSION >= 16) {
+                            long[] vibrationPattern = {0, 300, 200, 300};
+                            Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
+                                    .setSmallIcon(R.drawable.logonotif_white)
+                                    .setContentTitle("Новые диспетчеры онлайн!")
+                                    .setContentText("Самое время полетать!")
+                                    .setAutoCancel(true)
+                                    .setSound(ringUri)
+                                    .setVibrate(vibrationPattern);
+                            Intent resultIntent = new Intent(aero.ivao.ua.online.BasicService.this, MainActivity.class);
+                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(aero.ivao.ua.online.BasicService.this);
+                            stackBuilder.addParentStack(MainActivity.class);
+                            stackBuilder.addNextIntent(resultIntent);
+                            PendingIntent resultPendingIntent =
+                                    stackBuilder.getPendingIntent(
+                                            0,
+                                            PendingIntent.FLAG_UPDATE_CURRENT
+                                    );
+                            mBuilder.setContentIntent(resultPendingIntent);
+                            NotificationManager mNotificationManager =
+                                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                            mNotificationManager.notify(221, mBuilder.build());
+                        } else {
+                            long[] vibrationPattern = {0, 300, 200, 300};
+                            Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
+                                    .setSmallIcon(R.drawable.logonotif_black)
+                                    .setContentTitle("Новые диспетчеры онлайн!")
+                                    .setContentText("Самое время полетать!")
+                                    .setAutoCancel(true)
+                                    .setSound(ringUri)
+                                    .setVibrate(vibrationPattern);
+                            NotificationManagerCompat nm = NotificationManagerCompat.from(aero.ivao.ua.online.BasicService.this);
+                            nm.notify(221, mBuilder.build());
+                        }
                     }
                 }
-                if(updated){
-                    if(SDK_VERSION >= 16) {
-                        long[] vibrationPattern = {0, 300, 200, 300};
-                        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
-                                        .setSmallIcon(R.drawable.logonotif_white)
-                                        .setContentTitle("Новые диспетчеры онлайн!")
-                                        .setContentText("Самое время полетать!")
-                                        .setAutoCancel(true)
-                                        .setSound(ringUri)
-                                        .setVibrate(vibrationPattern);
-                        Intent resultIntent = new Intent(aero.ivao.ua.online.BasicService.this, MainActivity.class);
-                        TaskStackBuilder stackBuilder = TaskStackBuilder.create(aero.ivao.ua.online.BasicService.this);
-                        stackBuilder.addParentStack(MainActivity.class);
-                        stackBuilder.addNextIntent(resultIntent);
-                        PendingIntent resultPendingIntent =
-                                stackBuilder.getPendingIntent(
-                                        0,
-                                        PendingIntent.FLAG_UPDATE_CURRENT
-                                );
-                        mBuilder.setContentIntent(resultPendingIntent);
-                        NotificationManager mNotificationManager =
-                                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                        mNotificationManager.notify(221, mBuilder.build());
-                    }else{
-                        long[] vibrationPattern = {0, 300, 200, 300};
-                        Uri ringUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(aero.ivao.ua.online.BasicService.this)
-                                .setSmallIcon(R.drawable.logonotif_black)
-                                .setContentTitle("Новые диспетчеры онлайн!")
-                                .setContentText("Самое время полетать!")
-                                .setAutoCancel(true)
-                                .setSound(ringUri)
-                                .setVibrate(vibrationPattern);
-                        NotificationManagerCompat nm = NotificationManagerCompat.from(aero.ivao.ua.online.BasicService.this);
-                        nm.notify(221, mBuilder.build());
-                    }
-                    writeFile(resultJson);
-                }
+                writeFile(resultJson);
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (IOException e) {

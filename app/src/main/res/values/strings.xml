@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">ATC Online</string>
-    <string name="vid">VID:</string>
+    <string name="noonline">Прости, но сейчас никого нет онлайн :(</string>
 </resources>

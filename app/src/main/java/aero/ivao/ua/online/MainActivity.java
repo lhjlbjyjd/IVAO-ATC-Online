@@ -3,18 +3,27 @@ package aero.ivao.ua.online;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -24,16 +33,21 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     int length = 0;
-    boolean doneParsing = false;
+    Boolean doneParsing = false, firstLaunch;
     ArrayList<atc> atcs = new ArrayList<atc>();
     ListAdapter listAdapter;
     String[] positions = new String[15];
@@ -41,25 +55,54 @@ public class MainActivity extends AppCompatActivity {
     String[] vids = new String[15];
     ListView lvMain;
     ProgressBar pb;
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
+    PackageInfo pInfo;
+    String verName;
+    TextView noOnline;
+    SwipeRefreshLayout mSwipeRefreshLayout;
     private GoogleApiClient client;
+    SharedPreferences sPref;
+    final String FILENAME = "servData";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        try {
+            pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        sPref = getPreferences(MODE_PRIVATE);
+        Boolean fileCreated = sPref.getBoolean("FileCreated", false);
+        firstLaunch = sPref.getBoolean("FirstLaunch", true);
+        Log.d("FirstLaunch", firstLaunch.toString());
+        if(!fileCreated){
+            try {
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
+                        openFileOutput(FILENAME, MODE_PRIVATE)));
+                bw.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            SharedPreferences.Editor ed = sPref.edit();
+            ed.putBoolean("FileCreated", true);
+            ed.apply();
+        }
+        verName = pInfo.versionName;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listAdapter = new ListAdapter(this, atcs);
-        lvMain = (ListView) findViewById(R.id.lvMain);
+        lvMain = (ListView) findViewById(R.id.list);
         pb = (ProgressBar) findViewById(R.id.pb);
-        new ParseTask().execute();
-        startService(new Intent(this, BasicService.class));
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+        noOnline = (TextView) findViewById(R.id.noOnlineText);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
+        mSwipeRefreshLayout.setColorSchemeColors(
+                Color.BLUE, Color.GREEN, Color.RED, Color.YELLOW);
+        new VersionSync().execute();
     }
 
-    @Override
+    /*@Override
     public void onStart() {
         super.onStart();
 
@@ -77,26 +120,163 @@ public class MainActivity extends AppCompatActivity {
                 Uri.parse("android-app://aero.ivao.ua.online/http/host/path")
         );
         AppIndex.AppIndexApi.start(client, viewAction);
-    }
+    }*/
 
     @Override
     public void onStop() {
         super.onStop();
+    }
 
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "Main Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app deep link URI is correct.
-                Uri.parse("android-app://aero.ivao.ua.online/http/host/path")
-        );
-        AppIndex.AppIndexApi.end(client, viewAction);
-        client.disconnect();
+    @Override
+    public void onRefresh() {
+        reloadData();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+    }
+
+    private class VersionSync extends AsyncTask<Void, Void, String> {
+
+        HttpURLConnection urlConnection = null;
+        HttpURLConnection urlConnection1 = null;
+        BufferedReader reader = null;
+        BufferedReader reader1 = null;
+        String versionName = "";
+        String changeList = "";
+        String result = "false";
+
+        @Override
+        protected String doInBackground(Void... params) {
+            // получаем данные с внешнего ресурса
+            try {
+                URL url = new URL("http://app.ivao-ua.com/AppVersion.html");
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.connect();
+
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuilder buffer = new StringBuilder();
+
+                reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    buffer.append(line);
+                }
+
+                versionName = buffer.toString();
+
+                if (versionName.equals(verName)) {
+                    result = "true";
+                } else {
+                    result = "false";
+                    URL url1 = new URL("http://app.ivao-ua.com/changelist.html");
+
+                    urlConnection1 = (HttpURLConnection) url1.openConnection();
+                    urlConnection1.setRequestMethod("GET");
+                    urlConnection1.connect();
+
+                    InputStream is = urlConnection1.getInputStream();
+                    StringBuilder buff = new StringBuilder();
+
+                    reader1 = new BufferedReader(new InputStreamReader(is));
+
+                    String line1;
+                    while ((line1 = reader1.readLine()) != null) {
+                        buff.append("• " + line1 + "\n");
+                    }
+
+                    changeList = buff.toString();
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            // Вывод JSON
+            if (result.equals("true")) {
+                continueAppLaunch();
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Требуется обновление!")
+                        .setMessage(changeList)
+                        .setIcon(R.drawable.icon)
+                        .setCancelable(false)
+                        .setNegativeButton("ОК",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                        Uri address = Uri.parse("http://app.ivao-ua.com/GetNewestVersion.html");
+                                        Intent openlinkIntent = new Intent(Intent.ACTION_VIEW, address);
+                                        startActivity(openlinkIntent);
+                                    }
+                                });
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+
+        }
+
+    }
+
+    private class ChangeList extends AsyncTask<Void, Void, String> {
+
+        HttpURLConnection urlConnection = null;
+        BufferedReader reader = null;
+        String changeList = "";
+
+        @Override
+        protected String doInBackground(Void... params) {
+            // получаем данные с внешнего ресурса
+            try {
+                URL url = new URL("http://app.ivao-ua.com/changelist.html");
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.connect();
+
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+
+                reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    buffer.append(line + "\n");
+                }
+
+                changeList = buffer.toString();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return changeList;
+        }
+        protected void onPostExecute(String strJson) {
+            super.onPostExecute(strJson);
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Изменения:")
+                    .setMessage(changeList)
+                    .setIcon(R.drawable.icon)
+                    .setCancelable(false)
+                    .setNegativeButton("ОК",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+            AlertDialog alert = builder.create();
+            alert.show();
+        }
     }
 
     private class ParseTask extends AsyncTask<Void, Void, String> {
@@ -160,12 +340,35 @@ public class MainActivity extends AppCompatActivity {
                 lvMain.setAdapter(listAdapter);
                 lvMain.setVisibility(View.VISIBLE);
                 pb.setVisibility(View.GONE);
+                if (length == 0) {
+                    noOnline.setVisibility(View.VISIBLE);
+                } else {
+                    noOnline.setVisibility(View.GONE);
+                }
+                mSwipeRefreshLayout.setRefreshing(false);
             } catch (Exception e) {
                 doneParsing = true;
             }
 
         }
 
+    }
+
+    public void continueAppLaunch() {
+        if(firstLaunch){
+            Log.d("first","launch");
+            SharedPreferences.Editor ed = sPref.edit();
+            ed.putBoolean("FirstLaunch", false);
+            ed.apply();
+            new ChangeList().execute();
+        }
+        new ParseTask().execute();
+        startService(new Intent(this, BasicService.class));
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
+
+    public void reloadData(){
+        new ParseTask().execute();
     }
 
 }
