@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">ATC Online</string>
     <string name="noonline">Прости, но сейчас никого нет онлайн :(</string>
+    <string name="alpha">Pre-Release Alpha. Not for public use</string>
+    <string name="about">О программе</string>
+    <string name="createdby">Создал: Дмитрий Родионов</string>
+    <string name="specialfor">Специально для IVAO Ukraine</string>
+    <string name="bug">Сообщить об ошибке</string>
 </resources>

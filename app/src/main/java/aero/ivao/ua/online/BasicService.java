@@ -1,6 +1,5 @@
 package aero.ivao.ua.online;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -9,40 +8,34 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
 public class BasicService extends Service {
     final String LOG_TAG = "myLogs";
-    ArrayList<atc> atcs = new ArrayList<atc>();
+    Long timestamp;
     int length;
     int length1;
+    int diff;
     private Timer mTimer;
     private MyTimerTask mMyTimerTask;
-    NotificationManager nm;
     int SDK_VERSION = android.os.Build.VERSION.SDK_INT;
     final String FILENAME = "servData";
 
@@ -64,11 +57,39 @@ public class BasicService extends Service {
     }
 
     void beginObservation() {
+        HttpURLConnection urlConnection;
+        BufferedReader reader;
+        String resultJson;
+        try {
+            URL url = new URL("http://wildfly-ivao.rhcloud.com/StatView/JsonAtcOnline");
+
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("GET");
+            urlConnection.connect();
+
+            InputStream inputStream = urlConnection.getInputStream();
+            StringBuilder buffer = new StringBuilder();
+
+            reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                buffer.append(line);
+            }
+            resultJson = buffer.toString();
+            JSONObject jsonObject = new JSONObject(resultJson);
+            timestamp = jsonObject.getLong("updated timestamp");
+            Calendar today = Calendar.getInstance();
+            diff = 360 - (int)Math.abs(today.getTimeInMillis()-(timestamp*1000));
+            urlConnection.disconnect();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         new Thread(new Runnable() {
             public void run() {
                 mTimer = new Timer();
                 mMyTimerTask = new MyTimerTask();
-                mTimer.schedule(mMyTimerTask, 0, 300000);
+                mTimer.schedule(mMyTimerTask, diff, 360000);
             }
         }).start();
     }
@@ -77,9 +98,9 @@ public class BasicService extends Service {
 
         @Override
         public void run() {
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-            String resultJson = "";
+            HttpURLConnection urlConnection;
+            BufferedReader reader;
+            String resultJson;
             try {
                 URL url = new URL("http://wildfly-ivao.rhcloud.com/StatView/JsonAtcOnline");
 
@@ -88,7 +109,7 @@ public class BasicService extends Service {
                 urlConnection.connect();
 
                 InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder buffer = new StringBuilder();
 
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
@@ -96,7 +117,7 @@ public class BasicService extends Service {
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line);
                 }
-
+                urlConnection.disconnect();
                 resultJson = buffer.toString();
                 Log.d("Start", "Start");
                 JSONObject jsonObject = new JSONObject(resultJson);
@@ -196,9 +217,7 @@ public class BasicService extends Service {
                     }
                 }
                 writeFile(resultJson);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -213,9 +232,7 @@ public class BasicService extends Service {
             bw.write(json);
             // закрываем поток
             bw.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -227,9 +244,7 @@ public class BasicService extends Service {
                     openFileInput(FILENAME)));
             // читаем содержимое
             str = br.readLine();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return str;

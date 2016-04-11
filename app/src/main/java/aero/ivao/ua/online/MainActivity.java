@@ -1,54 +1,43 @@
 package aero.ivao.ua.online;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     int length = 0;
     Boolean doneParsing = false, firstLaunch;
-    ArrayList<atc> atcs = new ArrayList<atc>();
+    ArrayList<atc> atcs = new ArrayList<>();
     ListAdapter listAdapter;
     String[] positions = new String[15];
     String[] names = new String[15];
@@ -59,7 +48,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     String verName;
     TextView noOnline;
     SwipeRefreshLayout mSwipeRefreshLayout;
-    private GoogleApiClient client;
     SharedPreferences sPref;
     final String FILENAME = "servData";
 
@@ -79,9 +67,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
                         openFileOutput(FILENAME, MODE_PRIVATE)));
                 bw.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             SharedPreferences.Editor ed = sPref.edit();
@@ -102,25 +88,28 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         new VersionSync().execute();
     }
 
-    /*@Override
-    public void onStart() {
-        super.onStart();
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.bug:
+                showBug();
+                return true;
+            case R.id.about:
+                showAbout();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client.connect();
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "Main Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app deep link URI is correct.
-                Uri.parse("android-app://aero.ivao.ua.online/http/host/path")
-        );
-        AppIndex.AppIndexApi.start(client, viewAction);
-    }*/
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
 
     @Override
     public void onStop() {
@@ -167,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line);
                 }
-
+                urlConnection.disconnect();
                 versionName = buffer.toString();
 
                 if (versionName.equals(verName)) {
@@ -187,7 +176,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                     String line1;
                     while ((line1 = reader1.readLine()) != null) {
-                        buff.append("• " + line1 + "\n");
+                        line1 = "• " + line1 + "\n";
+                        buff.append(line1);
                     }
 
                     changeList = buff.toString();
@@ -245,14 +235,16 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 urlConnection.connect();
 
                 InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder buffer = new StringBuilder();
 
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    buffer.append(line + "\n");
+                    line = "• " + line + "\n";
+                    buffer.append(line);
                 }
+                urlConnection.disconnect();
 
                 changeList = buffer.toString();
 
@@ -296,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 urlConnection.connect();
 
                 InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder buffer = new StringBuilder();
 
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
@@ -304,6 +296,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line);
                 }
+                urlConnection.disconnect();
 
                 resultJson = buffer.toString();
 
@@ -364,11 +357,26 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
         new ParseTask().execute();
         startService(new Intent(this, BasicService.class));
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     public void reloadData(){
+        atcs.clear();
         new ParseTask().execute();
+    }
+
+    public void showAbout(){
+        Intent intent = new Intent(this, about.class);
+        startActivity(intent);
+    }
+
+    public void showBug(){
+        String[] temp = new String[1];
+        temp[0] = "lhjlbjyjd@gmail.com";
+        Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts(
+                "mailto","lhjlbjyjd@gmail.com", null));
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, temp);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "BUG");
+        startActivity(Intent.createChooser(emailIntent, "Сообщить об ошибке..."));
     }
 
 }
